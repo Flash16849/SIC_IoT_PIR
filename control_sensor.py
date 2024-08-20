@@ -1,99 +1,101 @@
-# import RPi.GPIO as GPIO
-# import time
-# import datetime
-# import BlynkLib
-# import requests
+import RPi.GPIO as GPIO
+import time
+import datetime
+import BlynkLib
+import requests
 # import asyncio
 # import websockets
 
 
 
-# blynk = BlynkLib.Blynk("B8W1d5gvQKvi1Lve-ZRiRtoWRmlZBJLI")
+blynk = BlynkLib.Blynk("B8W1d5gvQKvi1Lve-ZRiRtoWRmlZBJLI")
 
-# # Thiết lập chân GPIO
-# LED_PIN = 17  # GPIO của LED
-# PIR_PIN = 18  # GPIO của cảm biến PIR
+# Thiết lập chân GPIO
+LED_PIN = 17  # GPIO của LED
+PIR_PIN = 18  # GPIO của cảm biến PIR
 
-# GPIO.setwarnings(False)
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setup(PIR_PIN, GPIO.IN)
-# GPIO.setup(LED_PIN, GPIO.OUT)
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(PIR_PIN, GPIO.IN)
+GPIO.setup(LED_PIN, GPIO.OUT)
 
-# # Thiết lập PWM trên GPIO17 với tần số 100Hz
-# pwm = GPIO.PWM(LED_PIN, 100)
-# pwm.start(0)  # Bắt đầu PWM với độ sáng 0%
-
-
+# Thiết lập PWM trên GPIO17 với tần số 100Hz
+pwm = GPIO.PWM(LED_PIN, 100)
+pwm.start(0)  # Bắt đầu PWM với độ sáng 0%
 
 
-# pirEnabled = True  # Mặc định PIR được bật
-# ledBlynk = False   # Mặc định Blynk không hoạt động
-# ledFrontend = False
-# E = 0
 
-# def motion_detected():
-#     global E
-#     global count
-#     if GPIO.input(PIR_PIN):
-#         count = 0
-#         print("Chuyển động phát hiện!")
-#         pwm.ChangeDutyCycle(70)
-#         time.sleep(5)
-#         E += (1.5 * 0.7) * 5
-#     else:
-#         pwm.ChangeDutyCycle(0)
+
+pirEnabled = True  # Mặc định PIR được bật
+ledBlynk = False   # Mặc định Blynk không hoạt động
+ledFrontend = False
+
+def motion_detected():
+    E = 0
+
+    if GPIO.input(PIR_PIN):
+        print("Chuyển động phát hiện!")
+        pwm.ChangeDutyCycle(70)
+        time.sleep(5)
+        E = (1.5 * 0.7) * 5
+        call_API(E)
+    else:
+        pwm.ChangeDutyCycle(0)
             
 
-# startTime = 0
-# endTime = 0
-# changeTime = 0
-# brightLevel = 0
+startTime = 0
+endTime = 0
+changeTime = 0
+brightLevel = 0
 
-# @blynk.on("V1")
-# def blynk_controlled(value):
-#     global pirEnabled
-#     global ledBlynk
-#     global ledFrontend
-#     global E
+@blynk.on("V1")
+def blynk_controlled(value):
+    global pirEnabled
+    global ledBlynk
+    global ledFrontend
 
-#     global startTime
-#     global endTime
-#     global changeTime
-#     global brightLevel
+    global startTime
+    global endTime
+    global changeTime
+    global brightLevel
+    E = 0
 
-#     if int(value[0]) != 0:  # Blynk bật đèn
-#         startTime = time.time()
-#         brightLevel = 0.7
+    if int(value[0]) != 0:  # Blynk bật đèn
+        startTime = time.time()
+        brightLevel = 0.7
 
-#         ledBlynk = True
-#         pirEnabled = False  # Tắt PIR khi Blynk điều khiển đèn
-#         ledFrontend = False
-#         pwm.ChangeDutyCycle(70)
+        ledBlynk = True
+        pirEnabled = False  # Tắt PIR khi Blynk điều khiển đèn
+        ledFrontend = False
+        pwm.ChangeDutyCycle(70)
 
-#     else:  # Blynk tắt đèn
-#         endTime = time.time()
-#         duration = endTime - startTime
-#         P = 1.5 * brightLevel
-#         E += P * duration
-#         ledBlynk = False
-#         pwm.ChangeDutyCycle(0)
-#         pirEnabled = True  # Bật lại PIR khi Blynk không điều khiển
+    else:  # Blynk tắt đèn
+        endTime = time.time()
+        duration = endTime - startTime
+        P = 1.5 * brightLevel
+        E = P * duration
+        call_API(E)
+        ledBlynk = False
+        pwm.ChangeDutyCycle(0)
+        pirEnabled = True  # Bật lại PIR khi Blynk không điều khiển
 
 
-# @blynk.on("V2")
-# def brightness_controlled(value):
-#     global ledBlynk
-#     global changeTime
-#     global brightLevel
+@blynk.on("V2")
+def brightness_controlled(value):
+    global ledBlynk
+    global changeTime
+    global brightLevel
+    E = 0
 
-#     if ledBlynk is not False:  # Blynk bật đèn
-#         changeTime = time.time()
-#         pwm.ChangeDutyCycle(int(value[0]))
-#         duration = changeTime - startTime
-#         P = 1.5 * brightLevel
-#         E += P * duration
-#         startTime = changeTime
-#         brightLevel = int(value[0])
+    if ledBlynk is not False:  # Blynk bật đèn
+        changeTime = time.time()
+        pwm.ChangeDutyCycle(int(value[0]))
+        duration = changeTime - startTime
+        P = 1.5 * brightLevel
+        E = P * duration
+        call_API(E)
+        startTime = changeTime
+        brightLevel = int(value[0])
         
 
 
@@ -116,48 +118,37 @@
 # # asyncio.get_event_loop().run_forever()
 
 
-# try:
-#     now = datetime.datetime.now()
-#     while True:
-#         if pirEnabled and ledFrontend is not True:
-#             motion_detected()
-#         blynk.run()
-#         # asyncio.get_event_loop().run_forever()
-
+try:
+    now = datetime.datetime.now()
+    while True:
+        if pirEnabled and ledFrontend is not True:
+            motion_detected()
+        blynk.run()
+        # asyncio.get_event_loop().run_forever()
+        time.sleep(0.5)
         
-#         if datetime.datetime.now().hour == 0 and datetime.datetime.now().minute == 0:
-#             # Gọi API Flask để lưu trữ dữ liệu
-#             if now.date() != datetime.datetime.now().date():
-#                 response = requests.post('http://localhost:5000/update_usage', 
-#                 json={'Ngày': now.date(), 'Điện năng tiêu thụ trong ngày': E})
-#                 print(response.json())
-#                 now = datetime.datetime.now()
-
-#         time.sleep(0.5)
+except KeyboardInterrupt:
+    print("Kết thúc chương trình.")
+finally:
+    pwm.stop()  # Dừng PWM
+    GPIO.cleanup()  # Đảm bảo GPIO được dọn dẹp khi kết thúc chương trình
 
 
-# except KeyboardInterrupt:
-#     print("Kết thúc chương trình.")
-# finally:
-#     pwm.stop()  # Dừng PWM
-#     GPIO.cleanup()  # Đảm bảo GPIO được dọn dẹp khi kết thúc chương trình
+# Gửi dữ liệu tới API Flask
+def call_API(E):
+    response = requests.post('http://localhost:5000/update_usage', 
+            json={'Ngày': datetime.datetime.now().date().isoformat(), 'Điện năng tiêu thụ trong ngày': E})
 
-# # Gọi API Flask để lưu trữ dữ liệu
-# # response = requests.post('http://localhost:5000/update_usage', json={'Số lần đèn mở': ledOn_count})
-# # print(response.json())
+    print(response.json())
+
 
 
 # # if x is not '12:00:00':
 # # 	print("correct")
 
 
-import requests
-import datetime
+# import requests
+# import datetime
 
-E = 500.0  # Giả sử đây là điện năng tiêu thụ được tính toán
+# E = 500.0  # Giả sử đây là điện năng tiêu thụ được tính toán
 
-# Gửi dữ liệu tới API Flask
-response = requests.post('http://localhost:5000/update_usage', 
-            json={'Ngày': datetime.datetime.now().date().isoformat(), 'Điện năng tiêu thụ trong ngày': E})
-
-print(response.json())
