@@ -1,0 +1,85 @@
+.App {
+    text-align: center;
+  }
+  
+*{
+    margin:0;
+    padding:0;
+    box-sizing: border-box;
+    font-family: 'Montserat', sans-serif;
+  }
+  body{
+    background-color: #ededed;
+  }
+  
+  #banner-top{
+    justify-content: space-between;
+    width:100%;
+    height:90px;
+    position:fixed;
+    margin-top:  0px;
+    background-color: white;
+    display: flex;
+    padding-top: 20px;
+    padding-left: 20%;
+    padding-right: 10%; 
+    z-index: 100;
+  }
+  
+  .top-list-menu{
+    display:flex;
+    padding-top: 8px;
+    gap:15px;
+  
+  }
+  
+  .top-title{
+    color: black;
+  }
+  
+  .top-object{
+    font-size: 32px;
+  }
+  
+  .buttonOfWedsite{  background-color: #ffffff;
+    border: none;  
+    color: rgb(0, 0, 0);  
+    padding: 16px 32px;  
+    text-align: center;  
+    text-decoration: none;  
+    display: inline-block;  
+    font-size: 16px;  
+    margin: 2px 2px;  
+    -webkit-transition-duration: 0.4s; 
+    transition-duration: 0.4s;  
+    cursor: pointer;  
+    border-radius: 4px;
+  }
+  
+  .buttonOfWedsite:hover { 
+    background-color: #282c34;  
+    color: white;
+    border-radius: 15px;
+  }
+  
+  .circle1 {
+    background: rgb(221, 221, 221);
+    clip-path: circle(50%);
+    height: 700px;
+    width: 700px;      /* additional style */
+    position: absolute;
+    top: 70%;
+    left: 40%;
+    transform: translate(-50%, -50%);
+  }
+  .circle2 {
+    background: rgb(221, 221, 221);
+    clip-path: circle(50%);
+    height: 700px;
+    width: 700px;    /* additional style */
+    position: absolute;
+    top: 30%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+  
