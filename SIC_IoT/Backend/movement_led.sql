@@ -17,7 +17,7 @@ CREATE TABLE energy_consumed (
 CREATE TABLE energy_usage_daily (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date date,
-    e_usage_daily float
+    e_usage_daily float unique key 
 );
 
 CREATE TABLE energy_usage_weekly (

@@ -4,31 +4,19 @@ import datetime
 # URL của API Flask để lấy dữ liệu từ cơ sở dữ liệu
 BASE_URL = 'http://localhost:5000'
 
-def get_energy_consumption(date):
+def get_e_date(date):
     #Lấy dữ liệu điện năng tiêu thụ cho một ngày cụ thể.
-    response = requests.get(f'{BASE_URL}/get_daily_usage', params={'date': date})
+    response = requests.get(f'{BASE_URL}/get_usage', params={'date': date})
     if response.status_code == 200:
         data = response.json()
-        total_energy = sum([record['e_usage'] for record in data])
-        total_energy /= 3600
-        return round(total_energy, 2)
+        energy = data.get('E')
+        return energy
     else:
         print(f"Error fetching data for {date}: {response.json().get('message')}")
         return 0
+    
 
-def calculate_daily_energy():
-    #Tính toán điện năng tiêu thụ cho ngày hôm qua.
-    yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).date().isoformat()
-    total_energy = get_energy_consumption(yesterday)
-    
-    # Gửi tổng năng lượng tiêu thụ lên bảng khác trong cơ sở dữ liệu
-    response = requests.post(f'{BASE_URL}/update_daily_total', 
-                             json={'Ngày': yesterday, 'Tổng điện năng': total_energy})
-    
-    if response.status_code == 200:
-        print(f"Tổng điện năng tiêu thụ ngày {yesterday}: {total_energy} mWh")
-    else:
-        print(f"Error updating daily total: {response.json().get('message')}")
+
 
 # def calculate_weekly_energy():
 #     #Tính toán điện năng tiêu thụ cho tuần trước.
@@ -62,7 +50,7 @@ def calculate_monthly_energy():
     current_date = first_day_of_month
 
     while current_date <= last_day_of_month:
-        total_energy += get_energy_consumption(current_date)
+        total_energy += get_e_date(current_date)  # type: ignore
         current_date = (datetime.datetime.strptime(current_date, "%Y-%m-%d").date() + datetime.timedelta(days=1)).isoformat()
     
     # Gửi tổng năng lượng tiêu thụ tháng lên bảng khác trong cơ sở dữ liệu
@@ -75,6 +63,5 @@ def calculate_monthly_energy():
         print(f"Error updating monthly total: {response.json().get('message')}")
 
 if __name__ == "__main__":
-    calculate_daily_energy()
     # calculate_weekly_energy()
     calculate_monthly_energy()

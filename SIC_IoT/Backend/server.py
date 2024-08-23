@@ -1,75 +1,45 @@
 from flask import Flask, request, jsonify
-from sqlalchemy import create_engine, Column, Integer, Float, Date
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import pymysql
 import datetime
 
 app = Flask(__name__)
 
-# Cấu hình kết nối với cơ sở dữ liệu MySQL
-DATABASE_URI = 'mysql+pymysql://root:147258@localhost/energy_management'
-engine = create_engine(DATABASE_URI)
-Base = declarative_base()
-
-# Định nghĩa model tương ứng với bảng energy_usage_daily
-class EnergyUsageDaily(Base):
-    __tablename__ = 'energy_consumed'
-    id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
-    e_usage = Column(Float, nullable=False)
-
-# Mô hình lưu trữ điện năng tiêu thụ hàng ngày
-class DailyEnergyTotal(Base):
-    __tablename__ = 'energy_usage_daily'
-    id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
-    e_usage_daily = Column(Float, nullable=False)
-
-# Mô hình lưu trữ điện năng tiêu thụ hàng tuần
-class WeeklyEnergyTotal(Base):
-    __tablename__ = 'energy_usage_weekly'
-    id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
-    e_usage_weekly = Column(Float, nullable=False)
-
-# Mô hình lưu trữ điện năng tiêu thụ hàng tháng
-class MonthlyEnergyTotal(Base):
-    __tablename__ = 'energy_usage_monthly'
-    id = Column(Integer, primary_key=True)
-    date = Column(Integer, nullable=False)
-    e_usage_monthly = Column(Float, nullable=False)
+# Hàm kết nối với cơ sở dữ liệu MySQL
+def get_db_connection():
+    connection = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='147258',
+        database='energy_management',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    return connection
 
 
-# Tạo bảng nếu chưa có
-Base.metadata.create_all(engine)
-
-# Tạo session để tương tác với cơ sở dữ liệu
-Session = sessionmaker(bind=engine)
-session = Session()
-
-#GET///////////////////////////////////////////////////////
-@app.route('/get_daily_usage', methods=['GET'])
-def get_daily_usage():
+@app.route('/get_usage', methods=['GET'])
+def get_usage():
     try:
         # Lấy ngày từ query parameter
         date_str = request.args.get('date')
         date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
 
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
         # Truy vấn cơ sở dữ liệu để lấy dữ liệu của ngày đó
-        records = session.query(EnergyUsageDaily).filter_by(date=date).all()
+        sql = "SELECT * FROM energy_usage_daily WHERE date = %s"
+        cursor.execute(sql, (date,))
+        records = cursor.fetchall()
 
-        # Chuyển đổi kết quả thành danh sách các dict
-        data = [{'id': record.id, 'date': record.date.isoformat(), 'e_usage': record.e_usage} for record in records]
+        cursor.close()
+        connection.close()
 
-        return jsonify(data), 200
+        return jsonify(records), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
-#GET///////////////////////////////////////////////////////END
 
 
-
-#POST////////////////////////////////////////////////
-# API để thêm dữ liệu điện năng tiêu thụ
+# POST
 @app.route('/update_usage', methods=['POST'])
 def update_usage():
     data = request.json
@@ -82,70 +52,26 @@ def update_usage():
         # Chuyển đổi ngày từ chuỗi thành đối tượng date
         date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
 
-        # Tạo bản ghi mới
-        new_record = EnergyUsageDaily(date=date, e_usage=e_usage)
+        connection = get_db_connection()
+        cursor = connection.cursor()
 
-        # Thêm bản ghi vào cơ sở dữ liệu
-        session.add(new_record)
-        session.commit()
+        # Cập nhật hoặc chèn dữ liệu vào bảng energy_usage_daily
+        sql = """
+        INSERT INTO energy_usage_daily (date, e_usage_daily)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE e_usage_daily = e_usage_daily + VALUES(e_usage_daily)
+        """
+        cursor.execute(sql, (date, e_usage))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
 
         return jsonify({"status": "success", "message": "Dữ liệu đã được cập nhật"}), 200
     except Exception as e:
-        session.rollback()  # Quay lại nếu có lỗi
+        connection.rollback()
         return jsonify({"status": "error", "message": str(e)}), 400
     
-
-@app.route('/update_daily_total', methods=['POST'])
-def update_daily_total():
-    data = request.json
-
-    try:
-        date_str = data.get('Ngày')
-        total_energy = data.get('Tổng điện năng')
-
-        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-
-        # Tạo bản ghi mới hoặc cập nhật bản ghi hiện có
-        record = session.query(DailyEnergyTotal).filter_by(date=date).first()
-        if record:
-            record.total_energy = total_energy
-        else:
-            new_record = DailyEnergyTotal(date=date, total_energy=total_energy)
-            session.add(new_record)
-
-        session.commit()
-
-        return jsonify({"status": "success", "message": "Dữ liệu hàng ngày đã được lưu"}), 200
-    except Exception as e:
-        session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
-
-
-# @app.route('/update_weekly_total', methods=['POST'])
-# def update_weekly_total():
-#     data = request.json
-
-#     try:
-#         date_str = data.get('Ngày')
-#         total_energy = data.get('Tổng điện năng')
-
-#         date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-
-#         # Tạo bản ghi mới hoặc cập nhật bản ghi hiện có
-#         record = session.query(WeeklyEnergyTotal).filter_by(date=date).first()
-#         if record:
-#             record.total_energy = total_energy
-#         else:
-#             new_record = WeeklyEnergyTotal(date=date, total_energy=total_energy)
-#             session.add(new_record)
-
-#         session.commit()
-
-#         return jsonify({"status": "success", "message": "Dữ liệu hàng tuần đã được lưu"}), 200
-#     except Exception as e:
-#         session.rollback()
-#         return jsonify({"status": "error", "message": str(e)}), 400
-
 
 @app.route('/update_monthly_total', methods=['POST'])
 def update_monthly_total():
@@ -157,25 +83,26 @@ def update_monthly_total():
 
         date = datetime.datetime.strptime(date_str, "%Y-%m-%d").month
 
-        # Tạo bản ghi mới hoặc cập nhật bản ghi hiện có
-        record = session.query(MonthlyEnergyTotal).filter_by(date=date).first()
-        if record:
-            record.total_energy = total_energy
-        else:
-            new_record = MonthlyEnergyTotal(date=date, total_energy=total_energy)
-            session.add(new_record)
+        connection = get_db_connection()
+        cursor = connection.cursor()
 
-        session.commit()
+        # Cập nhật hoặc chèn dữ liệu vào bảng energy_usage_monthly
+        sql = """
+        INSERT INTO energy_usage_monthly (date, e_usage_monthly)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE e_usage_monthly = e_usage_monthly + VALUES(e_usage_monthly)
+        """
+        cursor.execute(sql, (date, total_energy))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
 
         return jsonify({"status": "success", "message": "Dữ liệu hàng tháng đã được lưu"}), 200
     except Exception as e:
-        session.rollback()
+        connection.rollback()
         return jsonify({"status": "error", "message": str(e)}), 400
-#POST////////////////////////////////////////////////END
-
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
-
