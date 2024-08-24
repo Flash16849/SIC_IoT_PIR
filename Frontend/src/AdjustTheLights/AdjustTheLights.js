@@ -1,16 +1,16 @@
 import React, {useState} from "react";
 import { Navigate } from "react-router-dom";
 import './AdjustTheLights.css';
-import axios from 'axios';
+// import axios from 'axios';
 
 function AdjustTheLights() {
     const[goToContactHome, setGoToContactHome] = useState(false);
     // const[goToContact, setGoToContact] = useState(false);
     const[goToContactPowerConsumption, setGoToContactPowerConsumption] = useState(false);
     const[goToContactNotification1, setGoToContactNotification1] = useState(false);
-    const [brightness] = useState(70);
-    // , setBrightness
-    const [isOn, setIsOn] = useState(false);
+    // const [brightness] = useState(70);
+    // // , setBrightness
+    // const [isOn, setIsOn] = useState(false);
 
     if(goToContactHome){
         return <Navigate to = "/"/>
@@ -44,16 +44,16 @@ function AdjustTheLights() {
     //   }
     // };
     
-    const toggleLight = () => {
-      const action = isOn ? 'off' : 'on';
-      axios.post('/api/led', {
-        action: action,
-        brightness: brightness
-      })
-      .then(response => console.log(response.data))
-      .catch(error => console.error('There was an error!', error));
-      setIsOn(!isOn);
-    };
+    // const toggleLight = () => {
+    //   const action = isOn ? 'off' : 'on';
+    //   axios.post('/api/led', {
+    //     action: action,
+    //     brightness: brightness
+    //   })
+    //   .then(response => console.log(response.data))
+    //   .catch(error => console.error('There was an error!', error));
+    //   setIsOn(!isOn);
+    // };
 
     
 
@@ -89,9 +89,9 @@ function AdjustTheLights() {
           <div class="circle2"></div>
           <div>
           <div class="buttonMain">
-            <button class="buttonOnOff1" onClick={() => toggleLight()}
+            {/* <button class="buttonOnOff1" onClick={() => toggleLight()}
               {...isOn ? 'off' : 'on'}
-              >Turn on</button>
+              >Turn on</button> */}
             {/* <button class="buttonOnOff2">Turn off</button> */}
           </div>
           </div>

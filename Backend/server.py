@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 import pymysql
 import datetime
+import asyncio
+import websockets
 
 app = Flask(__name__)
 
@@ -16,6 +18,9 @@ def get_db_connection():
     return connection
 
 
+
+
+# Lấy điện năng tiêu thụ theo ngày
 @app.route('/get_usage', methods=['GET'])
 def get_usage():
     try:
@@ -35,6 +40,35 @@ def get_usage():
         connection.close()
 
         return jsonify(records), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+#Lấy 10 ngày điện năng tiêu thụ để đưa lên biểu đồ frontend
+@app.route('/get_e_date', methods=['GET'])
+def get_e_date():
+    try:
+        # Lấy ngày từ query parameter
+        date_str = request.args.get('date')
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # Truy vấn cơ sở dữ liệu để lấy dữ liệu của ngày đó
+        sql = """SELECT date, energy_consumed FROM energy_usage
+        WHERE date >= CURDATE() - INTERVAL 10 DAY ORDER BY date ASC;
+        """
+
+        cursor.execute(sql)
+        records = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        # Chuyển đổi kết quả thành định dạng JSON
+        result = [{"date": str(record[0]), "energy_consumed": record[1]} for record in records]
+
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
@@ -81,18 +115,17 @@ def update_monthly_total():
         date_str = data.get('Ngày')
         total_energy = data.get('Tổng điện năng')
 
-        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").month
+        month = datetime.datetime.strptime(date_str, "%Y-%m-%d").month
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
         # Cập nhật hoặc chèn dữ liệu vào bảng energy_usage_monthly
         sql = """
-        INSERT INTO energy_usage_monthly (date, e_usage_monthly)
+        INSERT INTO energy_usage_monthly (month, e_usage_monthly)
         VALUES (%s, %s)
-        ON DUPLICATE KEY UPDATE e_usage_monthly = e_usage_monthly + VALUES(e_usage_monthly)
         """
-        cursor.execute(sql, (date, total_energy))
+        cursor.execute(sql, (month, total_energy))
         connection.commit()
 
         cursor.close()
