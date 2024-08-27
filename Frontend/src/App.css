@@ -43,7 +43,7 @@ body{
   display: flex;
   justify-content:space-between;
   align-items: center;
-  padding-left: 10%;
+  padding-left: 16%;
   z-index: 100;
 }
 
@@ -81,9 +81,36 @@ body{
   justify-content: center;
   width: 1000px;
   height: 500px;
-  margin-top: 5%;
+  margin-top: 2%;
   z-index: 100;
   background-color: #f7f7f7; /* Màu nền nhẹ nhàng */
   border-radius: 10px; /* Bo góc nhẹ */
   box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+}
+
+.button-container {
+  display: flex;
+  justify-content: flex-start; /* Đặt các nút về bên trái */
+  gap: 30px; /* Khoảng cách giữa các nút */
+  padding: 20px; /* Khoảng cách từ viền container đến nút */
+  z-index: 100;
+}
+
+button {
+  background-color: #000000; /* Màu nền đen */
+  color: #ffffff; /* Chữ màu trắng */
+  padding: 10px 20px; /* Khoảng cách bên trong nút */
+  border: none; /* Loại bỏ viền */
+  border-radius: 5px; /* Bo góc nhẹ */
+  cursor: pointer; /* Con trỏ chuyển thành tay khi hover */
+  font-size: 16px; /* Kích thước chữ */
+  transition: background-color 0.3s; /* Hiệu ứng khi hover */
+}
+
+button:hover {
+  background-color: #333333; /* Đổi màu khi hover */
+}
+
+button:active {
+  background-color: #555555; /* Đổi màu khi nhấn nút */
 }

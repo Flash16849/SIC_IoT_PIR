@@ -1,13 +1,20 @@
-import RPi.GPIO as GPIO
 import time
 import datetime
-import BlynkLib
-import requests
 import smbus
+import RPi.GPIO as GPIO
+import firebase_admin
+from firebase_admin import credentials, db
+import BlynkLib
+
+
+cred = credentials.Certificate("/home/namqu/Desktop/project/Backend/sic-iot-ab9de-firebase-adminsdk-jhrmc-451e31a7b4.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://sic-iot-ab9de-default-rtdb.asia-southeast1.firebasedatabase.app'
+})
 
 
 
-blynk = BlynkLib.Blynk("B8W1d5gvQKvi1Lve-ZRiRtoWRmlZBJLI")
+blynk = BlynkLib.Blynk('azfeon74f5YOhQ6nveu6x-H684Yg9NkL')
 
 # Địa chỉ I2C của BH1750
 BH1750_ADDRESS = 0x23
@@ -40,12 +47,15 @@ def motion_detected():
 
     if GPIO.input(PIR_PIN):
         print("Chuyển động phát hiện!")
-        GPIO.output(RELAY_PIN, GPIO.HIGH)
         print("Đèn bật")
+        GPIO.output(RELAY_PIN, GPIO.HIGH)
         time.sleep(5)
+        GPIO.output(RELAY_PIN, GPIO.LOW)
         # 0.0013888889 là 5s đổi sang giờ
         E = 9 * 0.0038888189
-        call_API(E)
+        call_firebase(E)
+
+    else:
         GPIO.output(RELAY_PIN, GPIO.LOW)
         
 
@@ -59,7 +69,7 @@ def read_light():
 startTime = 0
 endTime = 0
 
-@blynk.on("V1")
+@blynk.on('V1')
 def blynk_controlled(value):
     global pirEnabled
     global ledBlynk
@@ -77,9 +87,10 @@ def blynk_controlled(value):
 
     else:  # Blynk tắt đèn
         endTime = time.time()
+        # 1s = 0.0002777778h và đèn có P = 9
         duration = (endTime - startTime) * 0.0002777778
-        E = 9 * duration
-        call_API(E)
+        E = 9 * duration 
+        call_firebase(E)
         ledBlynk = False
         GPIO.output(RELAY_PIN, GPIO.LOW)
         pirEnabled = True  # Bật lại PIR khi Blynk không điều khiển
@@ -87,39 +98,37 @@ def blynk_controlled(value):
         
 
 
-# Gửi dữ liệu tới API Flask
-def call_API(E):
-    response = requests.post('http://localhost:5000/update_usage', 
-            json={'Ngày': datetime.datetime.now().date().isoformat(), 'Điện năng tiêu thụ trong ngày': E})
+def call_firebase(E):
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    ref = db.reference(f'energy_usage/{today}')
+    
+    def update_transaction(current_data):
+        if current_data is None:
+            return {
+                'total_energy_consumed': E,
+                'last_updated': int(datetime.datetime.now().timestamp())
+            }
+        else:
+            current_data['total_energy_consumed'] += E
+            current_data['last_updated'] = int(datetime.datetime.now().timestamp())
+            return current_data
+    
+    ref.transaction(update_transaction)
+    print(f"Đã cập nhật {E} Wh lên Firebase.")
 
-    print(response.json())
 
 try:
     while True:
         light_level = read_light()
-
+        print(light_level)
         if light_level < 20 and pirEnabled:
             motion_detected()
         blynk.run()
-        time.sleep(1)
+        time.sleep(0.5)
+
     
         
 except KeyboardInterrupt:
     print("Kết thúc chương trình.")
 finally:
     GPIO.cleanup()  # Đảm bảo GPIO được dọn dẹp khi kết thúc chương trình
-
-
-
-
-
-
-# # if x is not '12:00:00':
-# # 	print("correct")
-
-
-# import requests
-# import datetime
-
-# E = 500.0  # Giả sử đây là điện năng tiêu thụ được tính toán
-
