@@ -26,16 +26,18 @@ body{
   z-index: 100;
 }
 
-.top-list-menu{
+.top-title{
+  color: black;
+}
+
+/* .top-list-menu{
   display:flex;
   padding-top: 8px;
   gap:15px;
 
 }
 
-.top-title{
-  color: black;
-}
+
 
 .top-object{
   font-size: 32px;
@@ -60,7 +62,7 @@ body{
   background-color: #282c34;  
   color: white;
   border-radius: 15px;
-}
+} */
 
 .circle1 {
   background: rgb(221, 221, 221);

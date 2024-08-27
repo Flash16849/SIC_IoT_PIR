@@ -18,15 +18,16 @@ BH1750_CONTINUOUS_HIGH_RES_MODE = 0x10
 # Thiết lập I2C
 bus = smbus.SMBus(1)
 
+# Thiết lập chân GPIO cho relay
+RELAY_PIN = 16  # Chọn chân GPIO mà bạn đã kết nối với chân IN của relay
+
 # Thiết lập chân GPIO
-LED_PIN = 17  # GPIO của LED
 PIR_PIN = 18  # GPIO của cảm biến PIR
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIR_PIN, GPIO.IN)
-GPIO.setup(LED_PIN, GPIO.OUT)
-
+GPIO.setup(RELAY_PIN, GPIO.OUT)
 
 
 
@@ -39,12 +40,13 @@ def motion_detected():
 
     if GPIO.input(PIR_PIN):
         print("Chuyển động phát hiện!")
-        GPIO.output(LED_PIN, GPIO.HIGH)
+        GPIO.output(RELAY_PIN, GPIO.HIGH)
+        print("Đèn bật")
         time.sleep(5)
         # 0.0013888889 là 5s đổi sang giờ
-        E = 9 * 0.0013888889
+        E = 9 * 0.0038888189
         call_API(E)
-        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(RELAY_PIN, GPIO.LOW)
         
 
 
@@ -71,7 +73,7 @@ def blynk_controlled(value):
 
         ledBlynk = True
         pirEnabled = False  # Tắt PIR khi Blynk điều khiển đèn
-        GPIO.output(LED_PIN, GPIO.HIGH)
+        GPIO.output(RELAY_PIN, GPIO.HIGH)
 
     else:  # Blynk tắt đèn
         endTime = time.time()
@@ -79,7 +81,7 @@ def blynk_controlled(value):
         E = 9 * duration
         call_API(E)
         ledBlynk = False
-        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(RELAY_PIN, GPIO.LOW)
         pirEnabled = True  # Bật lại PIR khi Blynk không điều khiển
 
         

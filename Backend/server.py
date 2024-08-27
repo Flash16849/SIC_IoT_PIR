@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pymysql
 import datetime
 import asyncio
 import websockets
+import traceback
 
 app = Flask(__name__)
+CORS(app)  # Bật CORS cho toàn bộ API
 
 # Hàm kết nối với cơ sở dữ liệu MySQL
 def get_db_connection():
@@ -47,29 +50,29 @@ def get_usage():
 @app.route('/get_e_date', methods=['GET'])
 def get_e_date():
     try:
-        # Lấy ngày từ query parameter
-        date_str = request.args.get('date')
-        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
         # Truy vấn cơ sở dữ liệu để lấy dữ liệu của ngày đó
-        sql = """SELECT date, energy_consumed FROM energy_usage
+        sql = """SELECT date, e_usage_daily FROM energy_usage_daily
         WHERE date >= CURDATE() - INTERVAL 10 DAY ORDER BY date ASC;
         """
 
         cursor.execute(sql)
         records = cursor.fetchall()
+        print(records)
 
         cursor.close()
         connection.close()
 
         # Chuyển đổi kết quả thành định dạng JSON
-        result = [{"date": str(record[0]), "energy_consumed": record[1]} for record in records]
+        result = [{"date": record['date'].strftime("%Y-%m-%d"), "e_usage_daily": record['e_usage_daily']} for record in records]
 
         return jsonify(result), 200
     except Exception as e:
+        print(f"Error: {e}")  # Log lỗi vào console
+        traceback.print_exc()  # In chi tiết lỗi ra console
         return jsonify({"status": "error", "message": str(e)}), 400
 
 
@@ -80,11 +83,11 @@ def update_usage():
 
     try:
         # Lấy dữ liệu từ JSON
-        date_str = data.get('Ngày')
+        date = data.get('Ngày')
         e_usage = data.get('Điện năng tiêu thụ trong ngày')
 
         # Chuyển đổi ngày từ chuỗi thành đối tượng date
-        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        
 
         connection = get_db_connection()
         cursor = connection.cursor()

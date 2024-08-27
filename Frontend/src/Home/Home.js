@@ -24,7 +24,7 @@ function Home() {
               <div class="top-title">
                   <h1>Light Sensor</h1>
               </div>
-                  <div class="top-list-menu">
+                  {/* <div class="top-list-menu">
                   <div class="top-menu">
                       <button class="buttonOfWedsite">Home</button>
                   </div>
@@ -43,7 +43,7 @@ function Home() {
                         setGoToContactNotification1(true)
                       }>Notification</button>
                   </div>
-              </div>
+              </div> */}
           </div>
           <div class="circle1"></div>
           <div class="circle2"></div>
